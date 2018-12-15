@@ -8,6 +8,17 @@
 <script>
 import Notebook from './components/Notebook'
 import Page from './components/Page'
+import Firebase from 'firebase'
+require('dotenv').config()
+
+var database = Firebase.initializeApp({
+    apiKey: "AIzaSyBfohO89P_MSc0cdWsNhmCltyxS5tM-Rp4",
+    authDomain: "vue-firebase-88005.firebaseapp.com",
+    databaseURL: "https://vue-firebase-88005.firebaseio.com",
+    projectId: "vue-firebase-88005",
+    storageBucket: "vue-firebase-88005.appspot.com",
+    messagingSenderId: "153292258655"
+  }).database().ref();
 
 export default {
   name: 'App',
@@ -21,6 +32,17 @@ export default {
       index: 0
     }
   },
+  mounted() {
+    database.once('value', (pages) => {
+      pages.forEach((page) => {
+        this.pages.push({
+          ref: page.ref,
+          title: page.child('title').val(),
+          content: page.child('content').val()
+        })
+      })
+    })
+  },
   methods: {
     newPage () {
       this.pages.push({
@@ -33,9 +55,25 @@ export default {
       this.index = index
     },
     savePage () {
-      // nothing as of yet
+      var page = this.pages[this.index]
+      if (page.ref) {
+        this.updateExistingPage(page)
+      } else {
+        this.insertNewPage(page)
+      }
+    },
+    updateExistingPage (page) {
+      page.ref.update({
+        title: page.title,
+        content: page.content
+      })
+    },
+    insertNewPage (page) {
+      page.ref = database.push(page)
     },
     deletePage () {
+      var ref = this.pages[this.index].ref
+      ref && ref.remove()
       this.pages.splice(this.index, 1)
       this.index = Math.max(this.index - 1, 0)
     }
